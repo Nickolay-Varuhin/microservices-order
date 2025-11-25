@@ -1,0 +1,92 @@
+services:
+  users-service:
+    build: ./packages/users-service
+    ports:
+      - "3001:3000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@users-db:5432/users
+    depends_on:
+      - users-db
+    command: >
+      sh -c "
+        npx prisma migrate dev --name init &&
+        npm run start
+      "
+
+  products-service:
+    build: ./packages/products-service
+    ports:
+      - "3002:3000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@products-db:5432/products
+    depends_on:
+      - products-db
+    command: >
+      sh -c "
+        npx prisma migrate dev --name init &&
+        npm run start
+      "
+
+  orders-service:
+    build: ./packages/orders-service
+    ports:
+      - "3003:3000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@orders-db:5432/orders
+    depends_on:
+      - orders-db
+    command: >
+      sh -c "
+        npx prisma migrate dev --name init &&
+        npm run start
+      "
+
+  payments-service:
+    build: ./packages/payments-service
+    ports:
+      - "3004:3000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@payments-db:5432/payments
+    depends_on:
+      - payments-db
+    command: >
+      sh -c "
+        npx prisma migrate dev --name init &&
+        npm run start
+      "
+
+  users-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: users
+    ports:
+      - "5437:5432"
+
+  products-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: products
+    ports:
+      - "5438:5432"
+
+  orders-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: orders
+    ports:
+      - "5439:5432"
+
+  payments-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: payments
+    ports:
+      - "5440:5432"
