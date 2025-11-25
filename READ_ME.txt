@@ -13,5 +13,3 @@ Products Service: http://localhost:3002/api
 }
 Orders Service: http://localhost:3003/api
 Payments Service: http://localhost:3004/api
-
-посмотреть волумы для базы данных
