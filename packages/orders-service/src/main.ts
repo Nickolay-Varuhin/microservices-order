@@ -22,7 +22,7 @@ async function bootstrap() {
   );
 
   // Подключаем глобальный фильтр ошибок
-  app.useGlobalFilters(new HttpExceptionFilter());
+  //app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('Orders Service')

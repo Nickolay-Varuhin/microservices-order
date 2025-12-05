@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { SeedProductDto } from './dto/seed-product.dto';
@@ -13,6 +13,11 @@ export class ProductController {
     return this.productService.create(createProductDto);
   }
 
+  @Get('system-id')
+      getSystemId() {
+        return { systemId: process.env.SYSTEM_ID || 'products-service' };
+  }
+
   @Get()
   async findAll(): Promise<Product[]> {
     return this.productService.findAll();
@@ -21,6 +26,11 @@ export class ProductController {
   @Get(':id')
   async findOne(@Param('id') id: number): Promise<Product> {
     return this.productService.findOne(id);
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: number): Promise<string> {
+    return this.productService.delete(id);
   }
 
   @Post('seed')

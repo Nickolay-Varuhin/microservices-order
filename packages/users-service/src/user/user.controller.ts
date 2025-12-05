@@ -13,6 +13,11 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
+  @Get('system-id')
+  getSystemId() {
+      return { systemId: process.env.SYSTEM_ID || 'users-service' };
+  }
+
   @Get()
   async findAll(): Promise<User[]> {
     return this.userService.findAll();

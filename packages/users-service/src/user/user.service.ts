@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs'; 
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private httpService: HttpService) {}
 
   async create(createUserDto: CreateUserDto): Promise<any> {
     return this.prisma.user.create({
@@ -22,15 +24,9 @@ export class UserService {
   }
 
   async findOne(id: number): Promise<any> {
-    const user = await this.prisma.user.findUnique({
-      where: { id, deletedAt: null },
+    return this.prisma.user.findUnique({
+      where: { id },
     });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} does not exist or has been deleted.`);
-    }
-
-    return user;
   }
 
 
@@ -53,6 +49,17 @@ export class UserService {
         deletedAt: new Date(),
       },
     });
+
+    try {
+      await firstValueFrom(
+        this.httpService.delete(
+          'http://orders-service:3000/orders/by-user/' + id,
+        ),
+      );
+    } catch (e) {
+      // опционально: залогировать, но не ронять удаление пользователя
+      // console.error('Failed to delete user orders', e);
+    }
 
     return `User with ID ${id} has been soft-deleted.`;
   }

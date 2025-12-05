@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
@@ -101,6 +100,15 @@ export class OrderService {
 
     return `Order with ID ${id} has been deleted.`;
   }
+
+  async deleteByUserId(userId: number) {
+  return this.prisma.order.deleteMany({ where: { userId } });
+  }
+
+  async deleteByProductId(productId: number) {
+  return this.prisma.order.deleteMany({ where: { productId } });
+  }
+
 
   async seedOrders(): Promise<string> {
     // Получаем список пользователей

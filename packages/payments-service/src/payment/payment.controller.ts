@@ -13,6 +13,11 @@ export class PaymentController {
     return this.paymentService.create(createPaymentDto);
   }
 
+  @Get('system-id')
+    getSystemId() {
+      return { systemId: process.env.SYSTEM_ID || 'payments-service' };
+  }
+
   @Get()
   async findAll(): Promise<Payment[]> {
     return this.paymentService.findAll();

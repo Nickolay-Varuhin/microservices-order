@@ -1,4 +1,22 @@
 services:
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - orders-db
+      - users-db
+      - products-db
+      - payments-db
+    networks:
+      - backend
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
   users-service:
     build: ./packages/users-service
     ports:
@@ -12,6 +30,8 @@ services:
         npx prisma migrate dev --name init &&
         npm run start
       "
+    networks:
+      - backend
 
   products-service:
     build: ./packages/products-service
@@ -21,25 +41,56 @@ services:
       - DATABASE_URL=postgresql://user:password@products-db:5432/products
     depends_on:
       - products-db
+    volumes:
+      - ./packages/products-service:/app
+      - /app/node_modules
     command: >
       sh -c "
         npx prisma migrate dev --name init &&
         npm run start
       "
+    networks:
+      - backend
 
   orders-service:
     build: ./packages/orders-service
+    container_name: orders-service
     ports:
       - "3003:3000"
     environment:
+      - SYSTEM_ID=orders-1
       - DATABASE_URL=postgresql://user:password@orders-db:5432/orders
     depends_on:
       - orders-db
+    volumes:
+      - ./packages/orders-service:/app
+      - /app/node_modules
     command: >
       sh -c "
         npx prisma migrate dev --name init &&
         npm run start
       "
+    networks:
+      - backend
+
+  orders-service-2:
+    build: ./packages/orders-service
+    container_name: orders-service-2
+    environment:
+      - SYSTEM_ID=orders-2
+      - DATABASE_URL=postgresql://user:password@orders-db:5432/orders
+    depends_on:
+      - orders-db
+      - orders-service   # чтобы миграции выполнились до старта второй реплики
+    volumes:
+      - ./packages/orders-service:/app
+      - /app/node_modules
+    command: >
+      sh -c "
+        npm run start:dev
+      "
+    networks:
+      - backend
 
   payments-service:
     build: ./packages/payments-service
@@ -49,11 +100,32 @@ services:
       - DATABASE_URL=postgresql://user:password@payments-db:5432/payments
     depends_on:
       - payments-db
+    volumes:
+      - ./packages/payments-service:/app
+      - /app/node_modules
     command: >
       sh -c "
         npx prisma migrate dev --name init &&
         npm run start
       "
+    networks:
+      - backend
+
+  nginx-gateway:
+    image: nginx:alpine
+    container_name: nginx-gateway
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - orders-service
+      - orders-service-2
+      - users-service
+      - products-service
+      - payments-service
+    networks:
+      - backend
 
   users-db:
     image: postgres:13
@@ -63,6 +135,10 @@ services:
       POSTGRES_DB: users
     ports:
       - "5437:5432"
+    volumes:
+      - users-data:/var/lib/postgresql/data
+    networks:
+      - backend
 
   products-db:
     image: postgres:13
@@ -72,6 +148,10 @@ services:
       POSTGRES_DB: products
     ports:
       - "5438:5432"
+    volumes:
+      - products-data:/var/lib/postgresql/data
+    networks:
+      - backend
 
   orders-db:
     image: postgres:13
@@ -81,6 +161,10 @@ services:
       POSTGRES_DB: orders
     ports:
       - "5439:5432"
+    volumes:
+      - orders-data:/var/lib/postgresql/data
+    networks:
+      - backend
 
   payments-db:
     image: postgres:13
@@ -90,3 +174,17 @@ services:
       POSTGRES_DB: payments
     ports:
       - "5440:5432"
+    volumes:
+      - payments-data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+networks:
+  backend:
+
+volumes:
+  orders-data:
+  users-data:
+  products-data:
+  payments-data:
+  pgadmin-data:
