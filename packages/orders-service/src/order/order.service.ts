@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -49,17 +49,63 @@ export class OrderService {
     return this.prisma.order.findMany();
   }
 
-  async findOne(id: number): Promise<any> {
-    return this.prisma.order.findUnique({
-      where: { id },
-    });
+    // получить один заказ только если user и product существуют и не удалены
+  async findOneFiltered(id: number): Promise<any> {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID ${id} does not exist.`);
+    }
+
+    // проверяем пользователя
+    try {
+      await lastValueFrom(
+        this.http.get(`http://users-service:3000/users/${order.userId}`),
+      );
+    } catch {
+      throw new NotFoundException(
+        `Order ${id} is hidden because user ${order.userId} is deleted or not found.`,
+      );
+    }
+
+    // проверяем продукт
+    try {
+      await lastValueFrom(
+        this.http.get(`http://products-service:3000/products/${order.productId}`),
+      );
+    } catch {
+      throw new NotFoundException(
+        `Order ${id} is hidden because product ${order.productId} is deleted or not found.`,
+      );
+    }
+
+    return order;
   }
 
-  async updateStatus(id: number, status: string): Promise<any> {
-    return this.prisma.order.update({
-      where: { id },
-      data: { status },
-    });
+  // вернуть только заказы с существующими user и product
+  async findAllFiltered(): Promise<any[]> {
+    const orders = await this.prisma.order.findMany();
+
+    const result: any[] = [];
+
+    for (const order of orders) {
+      const { userId, productId, id } = order;
+
+      try {
+        await lastValueFrom(
+          this.http.get(`http://users-service:3000/users/${userId}`),
+        );
+        await lastValueFrom(
+          this.http.get(`http://products-service:3000/products/${productId}`),
+        );
+        result.push(order);
+      } catch {
+        // если хотя бы одна из сущностей не найдена/удалена — этот заказ пропускаем
+        continue;
+      }
+    }
+
+    return result;
   }
 
   // отменить заказы пользователя
